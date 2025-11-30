@@ -3,8 +3,13 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const { sequelize } = require('./models');
 
-const PORT = process.env.PORT || 4000;
+
+const metricRoutes = require('./routes/metricRoutes');
+const userRoutes = require('./routes/userRoutes');
+const productRoutes = require('./routes/productRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 
 const app = express();
 app.use(cors());
@@ -16,40 +21,27 @@ const io = new Server(server, {
 });
 
 // REST endpoints
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
-});
+app.use('/api/metrics', metricRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/cart', cartRoutes);
 
-app.get('/api/metrics', (req, res) => {
-  res.json({
-    cpuUsage: Math.random() * 100,
-    memoryUsage: Math.random() * 100,
-    requestPerSecond: Math.floor(Math.random() * 200),
-    timestamp: Date.now(),
-  });
-});
-
+const PORT = process.env.PORT || 4000;
 // SOCKET.IO
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+async function start() {
+  try {
+    await sequelize.authenticate();
+    console.log('DB connected');
 
-  const interval = setInterval(() => {
-    const data = {
-      cpuUsage: Math.random() * 100,
-      memoryUsage: Math.random() * 100,
-      requestPerSecond: Math.floor(Math.random() * 200),
-      timestamp: Date.now(),
-    };
-    console.log('Emitting metrics-update to', socket.id, data);
-    socket.emit('metrics-update', data);
-  }, 2000);
+    // Geliştirme aşamasında sync:
+    await sequelize.sync({ alter: true }); // ilk etapta { force: true } ile de kullanabilirsin
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-    clearInterval(interval);
-  });
-});
+    server.listen(PORT, () => {
+      console.log(`Backend listening on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Unable to start server:', err);
+  }
+}
 
-server.listen(PORT, () => {
-  console.log(`Backend listening on http://localhost:${PORT}`);
-});
+start();
