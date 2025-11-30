@@ -1,10 +1,11 @@
 // app.module.ts
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule } from '@angular/common/http'; // <-- ekle
+
+import { provideHttpClient, withFetch } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing.module';
-import { App } from './app.components';
+import { App } from './app.component';
 
 @NgModule({
   declarations: [
@@ -14,10 +15,9 @@ import { App } from './app.components';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    HttpClientModule, // <-- buraya ekle
     App,
   ],
-  providers: [],
+  providers: [provideHttpClient(withFetch())],
   bootstrap: [App]
 })
 export class AppModule { }

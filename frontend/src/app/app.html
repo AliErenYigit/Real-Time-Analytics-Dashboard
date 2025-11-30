@@ -1,16 +1,12 @@
-<!-- src/app/app.component.html -->
-
 <div class="dashboard-container">
   <h1>{{ title }}</h1>
 
+  <!-- Backend Health -->
   <section class="card">
     <h2>Backend Health</h2>
     <p>
       Status:
-      <strong [ngClass]="{
-        'ok': healthStatus === 'ok',
-        'error': healthStatus === 'error'
-      }">
+      <strong [ngClass]="{ ok: healthStatus === 'ok', error: healthStatus === 'error' }">
         {{ healthStatus || 'loading...' }}
       </strong>
     </p>
@@ -19,8 +15,9 @@
     </p>
   </section>
 
+  <!-- Metrics REST -->
   <section class="card">
-    <h2>Dummy Metrics (REST)</h2>
+    <h2>Metrics (REST - Manuel Yenile)</h2>
 
     <div *ngIf="loadingMetrics">Yükleniyor...</div>
     <div *ngIf="metricsError" class="error">{{ metricsError }}</div>
@@ -33,5 +30,52 @@
       <button (click)="loadMetrics()">Yenile</button>
     </div>
   </section>
+
+  <!-- 🔴 Real-Time Metrics -->
+<section class="card">
+  <h2>Real-Time Metrics (Socket.IO)</h2>
+
+  <div *ngIf="realtimeError" class="error">
+    {{ realtimeError }}
+  </div>
+
+  <!-- Debug satırları opsiyonel, istersen bırak -->
+  <!-- <pre>Debug realtimeMetrics: {{ realtimeMetrics | json }}</pre>
+  <pre>Debug updateCount: {{ realtimeUpdateCount }}</pre> -->
+
+  <div *ngIf="realtimeMetrics">
+    <p>CPU Usage: {{ realtimeMetrics.cpuUsage | number:'1.0-2' }} %</p>
+    <p>Memory Usage: {{ realtimeMetrics.memoryUsage | number:'1.0-2' }} %</p>
+    <p>Requests/sec: {{ realtimeMetrics.requestPerSecond }}</p>
+    <p>Timestamp: {{ realtimeMetrics.timestamp | date:'medium' }}</p>
+    <p *ngIf="realtimeLastUpdate">
+      <strong>Son güncelleme:</strong>
+      {{ realtimeLastUpdate | date:'mediumTime' }}
+    </p>
+    <p>
+      <strong>Güncelleme sayısı:</strong>
+      {{ realtimeUpdateCount }}
+    </p>
+
+    <div style="margin-top: 1.5rem;">
+      <h3>CPU Usage History</h3>
+      <canvas
+        baseChart
+        [data]="cpuLineData"
+        [options]="cpuLineOptions"
+        [type]="'line'">
+      </canvas>
+    </div>
+
+    <small>Her ~2 saniyede bir yeni nokta ekleniyor</small>
+  </div>
+
+  <div *ngIf="!realtimeMetrics && !realtimeError">
+    Henüz veri gelmedi...
+  </div>
+</section>
+
+  
 </div>
+
 <router-outlet></router-outlet>
