@@ -1,0 +1,36 @@
+<!-- src/app/pages/dashboard/dashboard.component.html -->
+
+<div class="dashboard-container">
+  <h1>Real-Time Analytics Dashboard (v0.1)</h1>
+
+  <section class="card">
+    <h2>Backend Health</h2>
+    <p>
+      Status:
+      <strong [ngClass]="{
+        'ok': healthStatus === 'ok',
+        'error': healthStatus === 'error'
+      }">
+        {{ healthStatus || 'loading...' }}
+      </strong>
+    </p>
+    <p *ngIf="healthTimestamp">
+      Timestamp: {{ healthTimestamp | date:'medium':'UTC' }}
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>Dummy Metrics (REST)</h2>
+
+    <div *ngIf="loadingMetrics">Yükleniyor...</div>
+    <div *ngIf="metricsError" class="error">{{ metricsError }}</div>
+
+    <div *ngIf="metrics && !loadingMetrics">
+      <p>CPU Usage: {{ metrics.cpuUsage | number:'1.0-2' }} %</p>
+      <p>Memory Usage: {{ metrics.memoryUsage | number:'1.0-2' }} %</p>
+      <p>Requests/sec: {{ metrics.requestPerSecond }}</p>
+      <p>Timestamp: {{ metrics.timestamp | date:'medium' }}</p>
+      <button (click)="loadMetrics()">Yenile</button>
+    </div>
+  </section>
+</div>
