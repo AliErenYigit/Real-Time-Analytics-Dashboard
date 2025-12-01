@@ -23,6 +23,15 @@ export interface ShopSummary {
   activeSessions: number;
   generatedAt: string;
 }
+export interface ShopEvent {
+  eventType: 'cart_add' | 'order_created';
+  userId: number;
+  productId?: number;
+  quantity?: number;
+  orderId?: number;
+  totalPrice?: number;
+  createdAt: string | number;
+}
 
 @Injectable({
   providedIn: 'root'

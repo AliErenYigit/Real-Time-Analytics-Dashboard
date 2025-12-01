@@ -15,6 +15,7 @@ import {
   // HealthResponse,
   // MetricsResponse,
   ShopSummary,
+  ShopEvent,
 } from './services/analytics';
 
 import { NgChartsModule, BaseChartDirective } from 'ng2-charts';
@@ -49,11 +50,16 @@ export class App implements OnInit, OnDestroy {
   // metricsError: string | null = null;
 
   // // ---------- Real-time (Socket.IO) ----------
-   realtimeMetrics: ShopSummary | null = null;
+  realtimeMetrics: ShopSummary | null = null;
   realtimeLastUpdate: Date | null = null;
   realtimeError: string | null = null;
   realtimeUpdateCount = 0;
   private socket?: Socket;
+
+  // ---------- 🔴 Real-Time Shop Metrics (Kafka shop.events) ----------
+shopEvents: ShopEvent[] = [];
+cartAddsLastMinute = 0;
+ordersLastMinute = 0;
 
   // ---------- Line Chart State ----------
   maxPoints = 30; // son kaç nokta tutulacak
@@ -234,6 +240,44 @@ export class App implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       });
     });
+    this.socket.on('shop-event', (eventType: any) => {
+  console.log('[Client] shop-event', eventType);
+
+  this.ngZone.run(() => {
+    const e = eventType as ShopEvent;
+
+    // createdAt'i timestamp'e çevir
+    const eventTime =
+      typeof e.createdAt === 'string'
+        ? new Date(e.createdAt).getTime()
+        : (e.createdAt as number);
+
+    const now = Date.now();
+    const cutoff = now - 60_000; // son 1 dakika
+
+    // Event'i listeye ekle
+    this.shopEvents.push({
+      ...e,
+      createdAt: eventTime,
+    });
+
+    // Sadece son 1 dakikadakileri tut
+    this.shopEvents = this.shopEvents.filter(
+      (ev) => (ev.createdAt as number) >= cutoff
+    );
+
+    // Metrikleri hesapla
+    this.cartAddsLastMinute = this.shopEvents.filter(
+      (ev) => ev.eventType === 'cart_add'
+    ).length;
+
+    this.ordersLastMinute = this.shopEvents.filter(
+      (ev) => ev.eventType === 'order_created'
+    ).length;
+
+    this.cdr.detectChanges();
+  });
+});
 
     this.socket.on('disconnect', () => {
       console.log('[Client] disconnected');

@@ -45,6 +45,34 @@
   </div>
 </section>
 
+<section class="card">
+  <h2>Shop Business Metrics (Real-Time)</h2>
+
+  <div class="metric-row">
+    <span>Cart Adds (last 1 min, Kafka)</span>
+    <strong>{{ cartAddsLastMinute }}</strong>
+  </div>
+
+  <div class="metric-row">
+    <span>Orders (last 1 min, Kafka)</span>
+    <strong>{{ ordersLastMinute }}</strong>
+  </div>
+
+  <!-- İstersen HTTP summary'den gelenler de kalsın -->
+  <div *ngIf="shopSummary">
+    <hr />
+    <div class="metric-row">
+      <span>Online Users (DB)</span>
+      <strong>{{ shopSummary.onlineUsers }}</strong>
+    </div>
+
+    <div class="metric-row">
+      <span>Active Sessions (DB)</span>
+      <strong>{{ shopSummary.activeSessions }}</strong>
+    </div>
+  </div>
+</section>
+
   
 </div>
 
