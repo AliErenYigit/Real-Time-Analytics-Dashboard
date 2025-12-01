@@ -1,39 +1,79 @@
 const {sequelize,Product,Order,OrderItem,CartEvent} = require('../models');
+const { producer, SHOP_EVENTS_TOPIC } = require('../kafka');
 
 const addToCart = async (req, res) => {
+  try {
+    const { userId, productId, quantity,eventType } = req.body;
+
+    if (!userId || !productId || !quantity||!eventType) {
+      return res.status(400).json({
+        message: "userId, productId ve quantity zorunludur",
+      });
+    }
+
+    // Ürün var mı?
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Ürün bulunamadı" });
+    }
+
+    // Stok yeterli mi?
+    if (product.stock < quantity) {
+      return res.status(400).json({ message: "Yetersiz stok" });
+    }
+
+    // 🔵 Transaction başlat
+    let createdEvent;
+
+    await sequelize.transaction(async (t) => {
+
+      // 1) CartEvent kaydı
+      createdEvent = await CartEvent.create(
+        {
+          userId,
+          productId,
+          eventType: "add",
+          quantity,
+        },
+        { transaction: t }
+      );
+
+      // 2) Stok güncelle
+      product.stock -= quantity;
+      await product.save({ transaction: t });
+    });
+
+    // 🔵 Kafka'ya event gönder
+    const kafkaPayload = {
+      eventType: "cart_add",
+      userId,
+      productId,
+      quantity,
+      eventId: createdEvent.id,
+      createdAt: createdEvent.createdAt || new Date().toISOString(),
+    };
+
     try {
-        const {userId, productId, quantity,eventType} = req.body;
+      await producer.send({
+        topic: SHOP_EVENTS_TOPIC,
+        messages: [{ value: JSON.stringify(kafkaPayload) }],
+      });
 
-        if (!userId || !productId || !quantity||!eventType) {
-            return res.status(400).json({message: 'userId, productId ve quantity zorunludur'});
-        }
-        const product = await Product.findByPk(productId);
-        if (!product) {
-            return res.status(404).json({message: 'Ürün bulunamadı'});
-        }
-        if (product.stock < quantity) {
-            return res.status(400).json({message: 'Yetersiz stok'});
-        }
-        await sequelize.transaction(async (t) => {
-            await CartEvent.create({
-                userId,
-                productId,
-                eventType:"add",
-                quantity,
-            }, {transaction: t});
-            product.stock -= quantity;
-            await product.save({transaction: t});
-        }
-        );
+      console.log("➡️ Kafka CART_ADD sent:", kafkaPayload);
+    } catch (err) {
+      console.error("❌ Kafka send error (CART_ADD):", err);
+      // Kafka başarısız olsa bile sepete ekleme başarılı olmalı → swallow error
+    }
 
-        return res.status(201).json({message: 'Ürün sepete eklendi'});
-    }
-    catch (error) {
-        console.error('addToCart error:', error);
-        return res.status(500).json({message: 'Sepete eklenemedi'});
-    }
+    return res.status(201).json({
+      message: "Ürün sepete eklendi",
+      event: createdEvent,
+    });
+  } catch (error) {
+    console.error("addToCart error:", error);
+    return res.status(500).json({ message: "Sepete eklenemedi" });
+  }
 };
-
 const checkout = async (req, res) => {
     console.log('CHECKOUT BODY:', req.body);
 
@@ -106,6 +146,30 @@ const checkout = async (req, res) => {
     }
 
     await t.commit();
+
+    const kafkaPayload = {
+      eventType: 'order_created',
+      userId,
+      orderId: order.id,
+      totalPrice: Number(order.totalPrice),
+      itemCount: orderItems.length,
+      items: orderItems.map((oi) => ({
+        productId: oi.productId,
+        quantity: oi.quantity,
+        unitPrice: Number(oi.unitPrice),
+      })),
+      createdAt: order.createdAt || new Date().toISOString(),
+    };
+
+    try {
+      await producer.send({
+        topic: SHOP_EVENTS_TOPIC,
+        messages: [{ value: JSON.stringify(kafkaPayload) }],
+      });
+      console.log('➡️ sent ORDER_CREATED to Kafka:', kafkaPayload);
+    } catch (err) {
+      console.error('❌ Failed to send ORDER_CREATED to Kafka:', err);
+    }
 
     return res.status(201).json({
       message: 'Sipariş oluşturuldu',
