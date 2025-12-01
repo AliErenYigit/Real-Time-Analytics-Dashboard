@@ -12,8 +12,9 @@ import { io, Socket } from 'socket.io-client';
 
 import {
   AnalyticsService,
-  HealthResponse,
-  MetricsResponse,
+  // HealthResponse,
+  // MetricsResponse,
+  ShopSummary,
 } from './services/analytics';
 
 import { NgChartsModule, BaseChartDirective } from 'ng2-charts';
@@ -39,16 +40,16 @@ export class App implements OnInit, OnDestroy {
 
   title = 'Real-Time Analytics Dashboard';
 
-  // ---------- Health + REST ----------
-  healthStatus: string | null = null;
-  healthTimestamp: number | null = null;
+  // // ---------- Health + REST ----------
+  // healthStatus: string | null = null;
+  // healthTimestamp: number | null = null;
 
-  metrics: MetricsResponse | null = null;
-  loadingMetrics = false;
-  metricsError: string | null = null;
+  // metrics: MetricsResponse | null = null;
+  // loadingMetrics = false;
+  // metricsError: string | null = null;
 
-  // ---------- Real-time (Socket.IO) ----------
-  realtimeMetrics: MetricsResponse | null = null;
+  // // ---------- Real-time (Socket.IO) ----------
+   realtimeMetrics: ShopSummary | null = null;
   realtimeLastUpdate: Date | null = null;
   realtimeError: string | null = null;
   realtimeUpdateCount = 0;
@@ -92,6 +93,11 @@ export class App implements OnInit, OnDestroy {
       legend: { display: true },
     },
   };
+  shopSummary: ShopSummary | null = null;
+  shopSummaryLoading = false;
+  shopSummaryError: string | null = null;
+  shopSummaryLastUpdate: Date | null = null;
+  private shopSummaryTimer: any;   // setInterval id
 
   constructor(
     private analyticsService: AnalyticsService,
@@ -105,9 +111,10 @@ export class App implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('[App] ngOnInit');
-    this.loadHealth();
-    this.loadMetrics();
+    // this.loadHealth();
+    // this.loadMetrics();
     this.initSocket();
+    this.startShopSummaryPolling();
   }
 
   ngOnDestroy(): void {
@@ -120,36 +127,72 @@ export class App implements OnInit, OnDestroy {
   //  REST ENDPOINTLERİ
   // =====================================
 
-  loadHealth(): void {
-    this.analyticsService.getHealth().subscribe({
-      next: (res: HealthResponse) => {
-        this.healthStatus = res.status;
-        this.healthTimestamp = res.timestamp;
+  // loadHealth(): void {
+  //   this.analyticsService.getHealth().subscribe({
+  //     next: (res: HealthResponse) => {
+  //       this.healthStatus = res.status;
+  //       this.healthTimestamp = res.timestamp;
+  //     },
+  //     error: (err) => {
+  //       console.error('Health error', err);
+  //       this.healthStatus = 'error';
+  //     },
+  //   });
+  // }
+
+  // loadMetrics(): void {
+  //   this.loadingMetrics = true;
+  //   this.metricsError = null;
+
+  //   this.analyticsService.getMetrics().subscribe({
+  //     next: (res: MetricsResponse) => {
+  //       this.metrics = res;
+  //       this.loadingMetrics = false;
+  //     },
+  //     error: (err) => {
+  //       console.error('Metrics error', err);
+  //       this.metricsError = 'Metrics yüklenemedi';
+  //       this.loadingMetrics = false;
+  //     },
+  //   });
+  // }
+  // ---------- 🔴 Shop Summary (Business Metrics) ----------
+  loadShopSummary(): void {
+    this.shopSummaryLoading = true;
+    this.shopSummaryError = null;
+
+    this.analyticsService.getShopSummary().subscribe({
+      next: (res: ShopSummary) => {
+        this.shopSummary = res;
+        this.shopSummaryLastUpdate = new Date();
+        this.shopSummaryLoading = false;
+
+        this.cdr.detectChanges();
+
       },
       error: (err) => {
-        console.error('Health error', err);
-        this.healthStatus = 'error';
+        console.error('Shop summary error', err);
+        this.shopSummaryError = 'Shop metrics yüklenemedi';
+        this.shopSummaryLoading = false;
+
+         this.cdr.detectChanges();
+
       },
     });
   }
 
-  loadMetrics(): void {
-    this.loadingMetrics = true;
-    this.metricsError = null;
+ startShopSummaryPolling(): void {
+  // İlkini hemen çek
+  this.loadShopSummary();
 
-    this.analyticsService.getMetrics().subscribe({
-      next: (res: MetricsResponse) => {
-        this.metrics = res;
-        this.loadingMetrics = false;
-      },
-      error: (err) => {
-        console.error('Metrics error', err);
-        this.metricsError = 'Metrics yüklenemedi';
-        this.loadingMetrics = false;
-      },
+  // Sonrakileri zone içinde periyodik çalıştır
+  this.shopSummaryTimer = setInterval(() => {
+    this.ngZone.run(() => {
+      console.log('[ShopSummary] polling tick'); // debug
+      this.loadShopSummary();
     });
-  }
-
+  }, 1000);
+}
   // =====================================
   //  SOCKET.IO REAL-TIME
   // =====================================
@@ -163,7 +206,7 @@ export class App implements OnInit, OnDestroy {
       console.log('[Client] connected:', this.socket?.id);
     });
 
-    this.socket.on('metrics-update', (data: MetricsResponse) => {
+    this.socket.on('metrics-update', (data: ShopSummary) => {
       console.log('[Client] metrics-update', data);
 
       this.ngZone.run(() => {
@@ -172,11 +215,11 @@ export class App implements OnInit, OnDestroy {
         this.realtimeLastUpdate = new Date();
         this.realtimeUpdateCount++;
 
-        // ---- ÇİZGİ GRAFİĞE YENİ NOKTA EKLE ----
-        const timeLabel = new Date(data.timestamp).toLocaleTimeString();
+        // // ---- ÇİZGİ GRAFİĞE YENİ NOKTA EKLE ----
+        // const timeLabel = new Date(data.timestamp).toLocaleTimeString();
 
-        this.cpuLabels.push(timeLabel);
-        this.cpuSeries.push(Number(data.cpuUsage.toFixed(2)));
+        // this.cpuLabels.push(timeLabel);
+        // this.cpuSeries.push(Number(data.cpuUsage.toFixed(2)));
 
         // maxPoints'tan fazlası olursa eskiyi sil
         if (this.cpuLabels.length > this.maxPoints) {

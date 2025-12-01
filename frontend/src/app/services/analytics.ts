@@ -4,16 +4,24 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 
-export interface HealthResponse {
-  status: string;
-  timestamp: number;
-}
+// export interface HealthResponse {
+//   status: string;
+//   timestamp: number;
+// }
 
-export interface MetricsResponse {
-  cpuUsage: number;
-  memoryUsage: number;
-  requestPerSecond: number;
-  timestamp: number;
+// export interface MetricsResponse {
+//   cpuUsage: number;
+//   memoryUsage: number;
+//   requestPerSecond: number;
+//   timestamp: number;
+// }
+// 🔴 Shop Summary (Business Metrics) interface
+export interface ShopSummary {
+  onlineUsers: number;
+  lastMinuteOrders: number;
+  lastMinuteCartAdds: number;
+  activeSessions: number;
+  generatedAt: string;
 }
 
 @Injectable({
@@ -28,16 +36,19 @@ export class AnalyticsService {
     private ngZone: NgZone,
   ) {}
 
-  getHealth(): Observable<HealthResponse> {
-    return this.http.get<HealthResponse>(`${this.API_BASE}/api/health`);
-  }
+  // getHealth(): Observable<HealthResponse> {
+  //   return this.http.get<HealthResponse>(`${this.API_BASE}/api/health`);
+  // }
 
-  getMetrics(): Observable<MetricsResponse> {
-    return this.http.get<MetricsResponse>(`${this.API_BASE}/api/metrics`);
-  }
+  // getMetrics(): Observable<MetricsResponse> {
+  //   return this.http.get<MetricsResponse>(`${this.API_BASE}/api/metrics`);
+  // }
 
+    getShopSummary(): Observable<ShopSummary> {
+    return this.http.get<ShopSummary>(`${this.API_BASE}/api/metrics/shopmetrics`);
+  }
   // 🔴 Real-time metrics
-  connectToMetricsStream(): Observable<MetricsResponse> {
+  connectToMetricsStream(): Observable<ShopSummary> {
     if (!this.socket) {
       // transports parametresini şimdilik KALDIRIYORUZ
       this.socket = io(this.API_BASE);
@@ -51,8 +62,8 @@ export class AnalyticsService {
       });
     }
 
-    return new Observable<MetricsResponse>((subscriber) => {
-      const handler = (data: MetricsResponse) => {
+    return new Observable<ShopSummary>((subscriber) => {
+      const handler = (data: ShopSummary) => {
         console.log('[Socket] metrics-update', data);
           // 🔴 Angular'ın değişikliği fark etmesi için NgZone içinde çalıştır
       this.ngZone.run(() => {

@@ -1,77 +1,47 @@
 <div class="dashboard-container">
   <h1>{{ title }}</h1>
 
-  <!-- Backend Health -->
-  <section class="card">
-    <h2>Backend Health</h2>
-    <p>
-      Status:
-      <strong [ngClass]="{ ok: healthStatus === 'ok', error: healthStatus === 'error' }">
-        {{ healthStatus || 'loading...' }}
-      </strong>
-    </p>
-    <p *ngIf="healthTimestamp">
-      Timestamp: {{ healthTimestamp | date:'medium' }}
-    </p>
-  </section>
 
-  <!-- Metrics REST -->
-  <section class="card">
-    <h2>Metrics (REST - Manuel Yenile)</h2>
-
-    <div *ngIf="loadingMetrics">Yükleniyor...</div>
-    <div *ngIf="metricsError" class="error">{{ metricsError }}</div>
-
-    <div *ngIf="metrics && !loadingMetrics">
-      <p>CPU Usage: {{ metrics.cpuUsage | number:'1.0-2' }} %</p>
-      <p>Memory Usage: {{ metrics.memoryUsage | number:'1.0-2' }} %</p>
-      <p>Requests/sec: {{ metrics.requestPerSecond }}</p>
-      <p>Timestamp: {{ metrics.timestamp | date:'medium' }}</p>
-      <button (click)="loadMetrics()">Yenile</button>
-    </div>
-  </section>
 
   <!-- 🔴 Real-Time Metrics -->
+
+
+<!-- Business Metrics / Shop Monitor -->
 <section class="card">
-  <h2>Real-Time Metrics (Socket.IO)</h2>
+  <h2>Shop Business Metrics</h2>
 
-  <div *ngIf="realtimeError" class="error">
-    {{ realtimeError }}
-  </div>
+  <div *ngIf="shopSummaryLoading">Yükleniyor...</div>
+  <div *ngIf="shopSummaryError" class="error">{{ shopSummaryError }}</div>
 
-  <!-- Debug satırları opsiyonel, istersen bırak -->
-  <!-- <pre>Debug realtimeMetrics: {{ realtimeMetrics | json }}</pre>
-  <pre>Debug updateCount: {{ realtimeUpdateCount }}</pre> -->
-
-  <div *ngIf="realtimeMetrics">
-    <p>CPU Usage: {{ realtimeMetrics.cpuUsage | number:'1.0-2' }} %</p>
-    <p>Memory Usage: {{ realtimeMetrics.memoryUsage | number:'1.0-2' }} %</p>
-    <p>Requests/sec: {{ realtimeMetrics.requestPerSecond }}</p>
-    <p>Timestamp: {{ realtimeMetrics.timestamp | date:'medium' }}</p>
-    <p *ngIf="realtimeLastUpdate">
-      <strong>Son güncelleme:</strong>
-      {{ realtimeLastUpdate | date:'mediumTime' }}
-    </p>
-    <p>
-      <strong>Güncelleme sayısı:</strong>
-      {{ realtimeUpdateCount }}
-    </p>
-
-    <div style="margin-top: 1.5rem;">
-      <h3>CPU Usage History</h3>
-      <canvas
-        baseChart
-        [data]="cpuLineData"
-        [options]="cpuLineOptions"
-        [type]="'line'">
-      </canvas>
+  <div *ngIf="shopSummary && !shopSummaryLoading">
+    <div class="metric-row">
+      <span>Online Users</span>
+      <strong>{{ shopSummary.onlineUsers }}</strong>
     </div>
 
-    <small>Her ~2 saniyede bir yeni nokta ekleniyor</small>
+    <div class="metric-row">
+      <span>Last 1 min Orders</span>
+      <strong>{{ shopSummary.lastMinuteOrders }}</strong>
+    </div>
+
+    <div class="metric-row">
+      <span>Last 1 min Cart Adds</span>
+      <strong>{{ shopSummary.lastMinuteCartAdds }}</strong>
+    </div>
+
+    <div class="metric-row">
+      <span>Active Sessions</span>
+      <strong>{{ shopSummary.activeSessions }}</strong>
+    </div>
+
+    <p class="metric-updated" *ngIf="shopSummaryLastUpdate">
+      Son güncelleme:
+      {{ shopSummaryLastUpdate | date: 'mediumTime' }}
+    </p>
   </div>
 
-  <div *ngIf="!realtimeMetrics && !realtimeError">
-    Henüz veri gelmedi...
+  <div *ngIf="!shopSummary && !shopSummaryLoading && !shopSummaryError">
+    Henüz veri yok.
   </div>
 </section>
 

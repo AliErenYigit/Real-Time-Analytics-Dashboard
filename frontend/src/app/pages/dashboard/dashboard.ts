@@ -13,47 +13,47 @@ import { CommonModule } from '@angular/common';
 })
 export class DashboardComponent implements OnInit {
 
-  healthStatus: string | null = null;
-  healthTimestamp: number | null = null;
+  // healthStatus: string | null = null;
+  // healthTimestamp: number | null = null;
 
-  metrics: any = null;
-  loadingMetrics = false;
-  metricsError: string | null = null;
+  // metrics: any = null;
+  // loadingMetrics = false;
+  // metricsError: string | null = null;
 
-  constructor(private analyticsService: AnalyticsService) {}
+  // constructor(private analyticsService: AnalyticsService) {}
 
   ngOnInit(): void {
-    this.loadHealth();
-    this.loadMetrics();
+    // this.loadHealth();
+    // this.loadMetrics();
   }
 
-  loadHealth(): void {
-    this.analyticsService.getHealth().subscribe({
-      next: (res) => {
-        this.healthStatus = res.status;
-        this.healthTimestamp = res.timestamp;
-      },
-      error: (err) => {
-        console.error('Health error', err);
-        this.healthStatus = 'error';
-      }
-    });
-  }
+  // loadHealth(): void {
+  //   this.analyticsService.getHealth().subscribe({
+  //     next: (res) => {
+  //       this.healthStatus = res.status;
+  //       this.healthTimestamp = res.timestamp;
+  //     },
+  //     error: (err) => {
+  //       console.error('Health error', err);
+  //       this.healthStatus = 'error';
+  //     }
+  //   });
+  // }
 
-  loadMetrics(): void {
-    this.loadingMetrics = true;
-    this.metricsError = null;
+  // loadMetrics(): void {
+  //   this.loadingMetrics = true;
+  //   this.metricsError = null;
 
-    this.analyticsService.getMetrics().subscribe({
-      next: (res) => {
-        this.metrics = res;
-        this.loadingMetrics = false;
-      },
-      error: (err) => {
-        console.error('Metrics error', err);
-        this.metricsError = 'Metrics yüklenemedi';
-        this.loadingMetrics = false;
-      }
-    });
-  }
+  //   this.analyticsService.getMetrics().subscribe({
+  //     next: (res) => {
+  //       this.metrics = res;
+  //       this.loadingMetrics = false;
+  //     },
+  //     error: (err) => {
+  //       console.error('Metrics error', err);
+  //       this.metricsError = 'Metrics yüklenemedi';
+  //       this.loadingMetrics = false;
+  //     }
+  //   });
+  // }
 }
